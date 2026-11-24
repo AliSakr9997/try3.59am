@@ -510,7 +510,7 @@ fun ProtectionScreen(app: RecoveryApp) {
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
             protectionOn = app.settings.isProtectionEnabled()
-            tampered = app.protection.isTampered()
+            tampered = app.protection.isTampered(app.db)
             blockCount = com.recovery.companion.blocking.Blocklist.count()
             request = app.db.disableDao().latest()
         }

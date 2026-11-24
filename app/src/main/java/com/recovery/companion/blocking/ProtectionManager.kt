@@ -49,13 +49,25 @@ class ProtectionManager(private val context: Context) {
 
     fun isServiceRunning(): Boolean = RecoveryVpnService.isRunning
 
-    /** True if protection should be on but the service is not running. */
-    suspend fun isTampered(): Boolean {
+    /** True if protection should be on but the service is not running or was revoked. */
+    suspend fun isTampered(db: AppDatabase? = null): Boolean {
         if (!settings.isProtectionEnabled()) return false
         if (isServiceRunning()) return false
+
+        // If an authorized disable request was approved and executed, it's not a tamper
+        if (db != null) {
+            val latest = withContext(Dispatchers.IO) { db.disableDao().latest() }
+            if (latest != null && latest.approved && latest.executed) {
+                return false
+            }
+        }
+
         val prefs = context.getSharedPreferences("protection", Context.MODE_PRIVATE)
+        val revokedAt = prefs.getLong("revoked_at", 0)
         val heartbeat = prefs.getLong("last_heartbeat", 0)
-        return System.currentTimeMillis() - heartbeat > 120_000
+
+        // Either revoked via system VPN settings or killed unexpectedly
+        return revokedAt > 0 || (heartbeat > 0 && System.currentTimeMillis() - heartbeat > 120_000) || heartbeat == 0L
     }
 
     /** Step 1 of disabling: create the request, start the 24h clock. */
