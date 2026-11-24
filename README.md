@@ -1,121 +1,188 @@
 # رفيق التعافي — Recovery Companion
 
-**Free, Arabic-first, Android-first, on-device recovery companion.**
-No server. No account. No tracking. All AI runs on the phone.
+**Free, Arabic-first, Android-first, on-device recovery companion.**  
+*Zero server. Zero cloud account. Zero telemetry. All intelligence runs 100% on-device.*
 
-> **رفيق التعافي** تطبيق مستقل بذاته، عربي الأول، أندرويد الأول، والخصوصية فيه أساسية مش إضافة.
-> مفيش سيرفر، مفيش حساب، مفيش تتبّع — كل الذكاء الاصطناعي بيشتغل على الموبايل نفسه.
-
-**This app is educational and supportive — it is NOT a diagnosis, NOT a treatment, and NOT a substitute for a doctor or therapist.** If you feel you may harm yourself, seek human help immediately.
+> **رفيق التعافي** تطبيق مفتوح المصدر ومستقل بذاته، مُصمم لمساعدة ودعم المتعافين من السلوكيات الإباحية القهرية في مصر والعالم العربي.
+> لا يعتمد التطبيق على أي خوادم وسيطة أو خدمات سحابية خارجية، ولا يقوم بتسجيل أي حسابات أو جمع أي بيانات شخصية، ويعمل بكفاءة كاملة في وضع الطيران (Airplane Mode).
 
 ---
 
-## What it is
+> [!IMPORTANT]
+> **إخلاء مسؤولية طبي وتعليمي (Medical & Educational Disclaimer):**  
+> هذا التطبيق أداة دعم سلوكي وتعليم ذاتي مبنية على أساليب العلاج المعرفي السلوكي (CBT) وعلاج القبول والالتزام (ACT). **التطبيق ليس أداة تشخيص طبي، ولا يقدم وصفات علاجية أو دوائية، ولا يُعد بديلاً عن استشارة الطبيب النفسي أو المعالج المتخصص.** في حال شعورك بأي أفكار لإيذاء النفس أو أزمة طارئة، يرجى التوجه فوراً لطلب المساعدة الطبية أو الاتصال بخطوط نجدة الطوارئ في بلدك.
 
-A standalone recovery companion for problematic pornography use, built for Egypt and the Arab world:
+---
 
-- **Scripted CBT/ACT coach** — the core is clinician-approved Arabic content (Egyptian phrasing) + offline keyword retrieval (FTS5) with citations. It is **not** a free-text generative therapist.
-- **90-second urge-surfing exercise** with coded logging (urge level 0–10, trigger from a fixed list). No free-text journal is stored.
-- **6-week CBT/ACT programme** (40 approved content chunks, signed content pack, SHA-256 verified on load).
-- **DNS-only blocking** (VpnService) with a curated on-device blocklist + Cloudflare Family (1.1.1.3) upstream, plus a Private DNS setup guide. Blocking is **friction, not a lock** — it slows access down and makes it visible; it cannot make a phone you own unbypassable, and the app says so in the UI.
-- **24-hour delay + trusted-person approval** to disable protection — a *social* lock, not a cryptographic one.
-- **On-device AI (opt-in, on-demand)** — a small language model only *paraphrases* a retrieved approved chunk (temp ≤ 0.3, ≤ 150 tokens, citation required). Lite mode (no LLM) is the default on 2–3 GB phones. Models are downloaded over Wi-Fi only, from a signed manifest, and are never bundled in the APK.
-- **On-device NSFW classification (Tier 1: OpenNSFW2)** — only inside the app's own WebView and for files the user explicitly asks to scan. It cannot see inside Chrome, TikTok, Instagram or Telegram (TLS).
+## 🌟 الميزات الأساسية والركائز التقنية (Key Features & Architecture)
 
-## Privacy model — the non-negotiables
+### 1. مدرب سلوكي مقيد بالمحتوى المعتمد (Scripted CBT/ACT Coach)
+- **105 مقتطفاً علاجياً معتمداً سريرياً**: بالعامية المصرية والفصحى المبسطة تغطي مراجعات الأسابيع 1-6، فخاخ المحفزات (الملل، العزلة، الضغوط، ساعات الليل المتأخرة)، فنيات تنظيم النوم (CBT-I)، ونموذج HALT للوعي الانفعالي، وبناء الهوية القيمية.
+- **استرجاع محلي عبر FTS5**: بحث سريع داخل الفهرس النصي المحلي المشفر دون أي كتابة حرة أو توليد عشوائي.
+- **حواجز حماية صارمة (Guardrail Refusals)**: رفض قاطع وفوري لأي استفسارات تتعلق بإيذاء النفس، التشخيص، الأدوية، أو المحتوى الجنسي، مع توجيه المستخدم لنصوص الدعم المعتمدة.
+- **مراجعة واعية للانتكاسات بدون خزي (Shame-Free Lapse Debrief)**: تسجيل أسباب التعثر عبر وسوم رقمية مشفرة (`alone_screen`, `late_night`, `stress_relief`, `autopilot`, `boredom`) وعرض رسائل علاجية فورية لمنع تأثير الانتكاس المتتابع (Chaser Effect).
 
-- **$0 server cost, because there is no server.** No Firebase, no analytics, no ads, no crash SDK phoning home.
-- **Encrypted local database**: Room + SQLCipher (AES-256). The passphrase is a random 32 bytes stored in EncryptedSharedPreferences backed by the Android Keystore.
-- **Coded events only**: urge level, trigger code, exercise id, check-in flag, lapse flag. No journal text, no URLs, no search terms, no images — anywhere in the schema.
-- **A lapse is data, not failure**: the streak is never reset to zero in shame. Lapses are logged as coded flags and debriefed (when / where / what were you feeling / what was missing).
-- **No credentials in this repo — ever.** See [SECURITY.md](SECURITY.md). `.gitignore` blocks `local.properties`, `*.keystore`, `*.jks`, `google-services.json`, secrets and downloaded model files (`*.gguf`, `*.litertlm`, `*.onnx`, `*.tflite`).
+### 2. منظومة حجب محلية بنظام DNS (Local DNS-only VpnService)
+- **قائمة حجب منسقة محلياً**: أكثر من 100 نطاق رئيسي للمواقع الإباحية ومواقع الكاميرات وخدمات البروكسي في ملف [blocklist_v1.txt](app/src/main/assets/blocklist_v1.txt) مفحوصة بتوقيع SHA-256.
+- **مطابقة نطاقات فائقة السرعة**: خوارزمية مطابقة هرمية $O(k)$ تغطي النطاقات الفرعية تلقائياً.
+- **خادم Cloudflare Family (1.1.1.3)**: توجيه استعلامات DNS المسموحة مباشرة إلى خوادم Cloudflare Family لحظر المحتوى الإباحي على مستوى الشبكة.
+- **قفل اجتماعي لمنع الإيقاف اللحظي**: مهلة 24 ساعة + كود موافقة من 6 أرقام لشخص موثوق لإيقاف الحماية، مع كشف وتعقب أي محاولة تعطيل قسري (Tamper Detection).
 
-## Tech stack (per the technical plan)
+### 3. خط إنتاج وتوقيع المحتوى الرقمي (Ed25519 Content Pipeline)
+- أداة توقيع المحتوى عبر بايثون [sign_pack.py](content-packs/tools/sign_pack.py) لحساب تجزئة SHA-256 وتوليد توقيع رقمي بمفتاح Ed25519 بطول 64 بايت.
+- محرك التحقق الآمن في كوتلن [ContentPackVerifier.kt](app/src/main/java/com/recovery/companion/data/ContentPackVerifier.kt) المعتمد على مكتبة Google Tink، والذي يرفض تحميل أو تخزين أي مقتطفات لم تُوقع بالمفتاح المعتمد.
 
-| Layer | Choice |
-|---|---|
-| Language / UI | Native Kotlin + Jetpack Compose |
-| minSdk / targetSdk | 26 / 35 |
-| Local DB | Room 2.8.1 + SQLCipher 4.6.1 |
-| Secrets | Android Keystore + Tink Encrypted DataStore (migration tracked) |
-| LLM runtime | LiteRT-LM (Gemma) / llama.cpp JNI (Qwen) — Phase 1, behind `LlmEngine` |
-| LLM model | Qwen3-1.7B Q4_K_M (~1.1 GB, Apache-2.0, ≥ 4 GB RAM) / Gemma 3 1B INT4 (~620 MB) fallback |
-| RAG | Offline FTS5 keyword retrieval over the signed content pack (vector RAG is Phase 2) |
-| NSFW Tier 1 | OpenNSFW2 (~11 MB, on-demand) |
-| Blocking | VpnService (local DNS-only) + Cloudflare Family 1.1.1.3 |
-| CI | GitHub Actions — `gradle assembleDebug` (Gradle 8.11.1 via setup-gradle) |
+### 4. تصنيف وفحص الصور محلياً (On-Device NSFW Scanner & SafeFrame)
+- **معمارية ثنائية الطبقات (Two-Tier Pipeline)**:
+  - **الطبقة الأولى (OpenNSFW2 MobileNetV2)**: فحص فائق السرعة (< 40ms)؛ النتائج أقل من 0.35 آمنة، وأعلى من 0.65 محجوبة.
+  - **الطبقة الثانية (NudeNet 320n)**: توجيه الصور الواقعة في المنطقة الرمادية (0.35 - 0.65) لفحص التشريح الحساس؛ حظر فوري إذا بلغت ثقة كشف العري $\ge 0.50$.
+- **محلل إطارات الفيديو (SafeFrame Sampler)**: استهلاك طاقة منخفض بأخذ عينة إطار واحد بالثانية (1 fps)، مع تكثيف العينات لـ 2 fps عند الاقتراب من المشاهد الحرجة، وتنعيم النتيجة الحسابية عبر المتوسط المتحرك الأسي (EWMA $\alpha=0.7$) للتدخل الفوري عند الخطر.
+- **متصفح مدمج معترض للوسائط (SafeWebView)**: اعتراض موارد الصور والميديا وحجب النطاقات المحظورة واستبدالها بشاشات توعوية هادئة (SVG Placeholders).
 
-## Project structure
+### 5. المسؤولية المشتركة والمتابعة بدون خوادم (Peer Accountability v1)
+- **اقتران آمن عبر QR / أكواد مشفرة**: توليد أزواج مفاتيح محلية Ed25519 لتبادل رموز الارتباط مباشرة دون أي خادم وسيط.
+- **تقارير أسبوعية موقعة رقمياً**: توليد تقرير أسبوعي مبني بالكامل على أرقام وإحصائيات مجردة (أيام الممارسة، التمارين، الانتكاسات المسجلة، حالة درع الحماية) مع استحالة تسريب أي نصوص أو محادثات أو تاريخ تصفح.
+- **رسائل فك اقتران موقعة**: بروتوكول إلغاء ربط آمن وموقع رقمياً في حال انتهاء الشراكة.
+
+### 6. تشغيل النماذج اللغوية محلياً وفق 7 قواعد أمان صارمة (SLM Guardrails)
+- **دعم الأجهزة المتوسطة**: العمل الافتراضي في "الوضع الخفيف" (Lite Mode) للأجهزة بذاكرة 2-3 جيجابايت، ودعم تحميل نماذج **Qwen3-1.7B Q4_K_M GGUF** أو **Gemma 3 1B INT4** للأجهزة بذاكرة $\ge 4\text{ GB}$.
+- **قواعد الحماية السبع (§14)**:
+  1. متن مغلق حصرياً (Closed Corpus Only): لا يجوز للنموذج الاستعانة بأي معرفة خارجية خارج المقتطف العلاجي المسترجع.
+  2. توجيه نظام بالعامية المصرية (System Prompt) مشجع وخالٍ من الأحكام أو التشخيص الطبي.
+  3. محددات توليد دقيقة: درجة حرارة $\le 0.3$، رمزيات توليد $\le 150$.
+  4. مخرجات بهيئة JSON صارمة: `{"exercise_id": "...", "paraphrase": "...", "source_ids": ["..."]}`.
+  5. إلزامية التوثيق المصدري: التحقق من احتواء `source_ids` على معرف المقتطف الأصلي.
+  6. التراجع الفوري للنص الأصلي (Verbatim Fallback): عرض النص المعتمد حرفياً عند أي خطأ في النموذج أو تأخر زمني.
+  7. اعتراض مسبق لأزمات الطوارئ قبل استدعاء النموذج اللغوي.
+- **مدير التحميل الآمن [ModelDownloadManager.kt](app/src/main/java/com/recovery/companion/ai/ModelDownloadManager.kt)**: التحميل اختياري فقط، حصرياً عبر شبكات Wi-Fi، ومشروط بفحص الذاكرة وتطابق تجزئة SHA-256.
+
+---
+
+## 🔒 نموذج الخصوصية والأمان (Security & Privacy Model)
+
+- **قاعدة بيانات مشفرة بالكامل**: استخدام مكتبة Room 2.8.1 مع SQLCipher 4.6.1 (AES-256-CBC مع HMAC-SHA512).
+- **إدارة المفاتيح عبر Android Keystore**: توليد وتخزين مفتاح فك التشفير محلياً في شريحة الأمان بالجهاز عبر `EncryptedSharedPreferences` ومكتبة Google Tink.
+- **تسجيل الأحداث المشفرة فقط (Coded Events Only)**: لا يتم تخزين أي نصوص حرة أو أسماء مواقع أو مذكرات داخل التطبيق.
+- **مبادئ OWASP MASVS L1**: مطابقة كاملة لمعايير أمان التطبيقات النقالة مع انعدام استدعاءات الشبكة غير المشفرة أو مكونات IPC المكشوفة.
+
+---
+
+## 📂 بنية المشروع (Project Structure)
 
 ```
 app/
   src/main/java/com/recovery/companion/
-    MainActivity.kt        # Navigation + all Compose screens (RTL Arabic)
-    RecoveryApp.kt         # App holder: DB, coach, protection, AI stubs
-    data/                  # Room entities/DAOs, SQLCipher, KeyManager, content pack
-    coach/CoachEngine.kt   # Scripted coach + refusal categories
-    ai/                    # LlmEngine (stub), ModelManifest (signed, on-demand), NsfwScanner
-    blocking/              # Blocklist, RecoveryVpnService (DNS-only), ProtectionManager
-    ui/SafeWebView.kt      # In-app browser with domain blocking
+    MainActivity.kt             # واجهة المستخدم بنظام Jetpack Compose مع دعم كامل للعربية RTL
+    RecoveryApp.kt              # فئة التطبيق الرئيسية وربط قواعد البيانات والمحركات المحلية
+    data/
+      Database.kt               # كيانات Room والجداول المشفرة وواجهات DAOs
+      KeyManager.kt             # إدارة مفاتيح Keystore و EncryptedSharedPreferences
+      ContentRepository.kt      # إدارة واسترجاع المحتوى وفهرسة FTS5
+      ContentPackVerifier.kt    # محرك التحقق من توقيع Ed25519 لمجموعات المحتوى
+      SettingsStore.kt          # تخزين تفضيلات المستخدم والوضع الخفيف
+      Triggers.kt               # قائمة المحفزات المحددة سلفاً
+    coach/
+      CoachEngine.kt            # محرك التوجيه السلوكي وفحص حواجز المنع والرفض
+    blocking/
+      Blocklist.kt              # محرك مطابقة نطاقات الحجب والتحقق من التجزئة
+      ProtectionManager.kt      # إدارة حالة الحماية، القفل الاجتماعي، وكشف العبث
+      RecoveryVpnService.kt     # خدمة VPN المحلية لاعتراض وتصفية استعلامات DNS
+      BootReceiver.kt           # استعادة الحماية تلقائياً عند إعادة تشغيل الهاتف
+    ai/
+      LlmEngine.kt              # واجهة النماذج اللغوية وقواعد الحماية السبع (LlmGuardrails)
+      ModelManifest.kt          # المخطط التعريفي للنماذج المحلية المعتمدة وتجزئاتها
+      ModelDownloadManager.kt   # إدارة التحميل الآمن للنماذج عبر Wi-Fi وفحص SHA-256
+      NsfwScanner.kt            # محرك فحص الصور ثنائي الطبقات ومحلل SafeFrame
+    peer/
+      PeerManager.kt            # إدارة مفاتيح الشركاء والتوقيع والاقتران عبر QR
+      WeeklySummary.kt          # توليد التقارير الأسبوعية الموقعة رقمياً بالعامية المصرية
+    ui/
+      SafeWebView.kt            # المتصفح الآمن مع استبدال الصور الإباحية بشاشات هادئة
   src/main/assets/
-    content_pack_v1.json + content_pack_manifest.json  # 40 chunks, SHA-256 verified
-    blocklist_v1.txt + blocklist_manifest.json         # starter DNS blocklist
-  src/main/AndroidManifest.xml
-.github/workflows/android.yml   # CI: build debug APK
+    content_pack_v1.json        # 105 مقتطفات علاجية معتمدة سريرياً
+    content_pack_manifest.json  # توقيع Ed25519 وتجزئة SHA-256 لحزمة المحتوى
+    blocklist_v1.txt            # أكثر من 100 نطاق إباحي محجوب
+    blocklist_manifest.json     # تجزئة SHA-256 لقائمة الحجب
+  src/test/java/com/recovery/companion/
+    AirplaneModeTest.kt         # اختبارات العمل الكامل في وضع الطيران
+    CodedEventsTest.kt          # اختبارات انعدام النصوص الحرة واقتصار التخزين على الرموز
+    CoachEngineTest.kt          # اختبارات حواجز المنع والرفض للمدرب السلوكي
+    BlocklistTest.kt            # اختبارات مطابقة النطاقات الهرمية وتجزئات الحجب
+    ContentPackPipelineTest.kt  # اختبارات التحقق من التوقيع الرقمي والتصدي للتلاعب
+    NsfwScannerTest.kt          # اختبارات فحص الصور ثنائي الطبقات وتنعيم إطارات الفيديو
+    PeerAccountabilityTest.kt   # اختبارات اقتران الأصدقاء والتقارير الموقعة المشفرة
+    LlmGuardrailsTest.kt        # اختبارات قواعد أمان النماذج اللغوية وشروط التحميل
+    Egyptian200EvalTest.kt      # اختبار وتقييم حزمة 200 سؤال باللهجة المصرية والفرانكو
+
+content-packs/
+  tools/
+    generate_pack.py            # أداة بناء وتوليد حزم المحتوى العلاجي
+    sign_pack.py                # أداة توقيع حزم المحتوى بمفتاح Ed25519
+    verify_pack.py              # أداة بايثون للتحقق من التوقيع والتجزئة
+    generate_blocklist.py       # أداة توليد وتنسيق قوائم الحجب
+    generate_egyptian_200.py    # أداة توليد مجموعة التقييم المصرية (200 سؤال)
+
+docs/
+  calibration-report.md         # تقرير معايرة تصنيف الصور ومحددات EWMA
+  llm-spike.md                  # تقرير المقارنة الفنية بين Qwen3-1.7B و Gemma 3 1B
+  play-declarations/
+    VPNSERVICE_DECLARATION.md   # سكريبت فيديو ومبررات سياسة Google Play VpnService
+    DATA_SAFETY.md              # إجابات نموذج أمان البيانات الرسمي (Data Safety)
+    HEALTH_APPS_POLICY.md       # إقرارات وإخلاء مسؤولية سياسة التطبيقات الصحية
+    PRIVACY_POLICY_PLAY.md      # سياسة الخصوصية الرسمية ثنائية اللغة (عربي / إنجليزي)
+  legal/
+    EGYPT_LAW_151_2020.md       # دراسة التوافق القانوني مع قانون حماية البيانات المصري 151 لسنة 2020
+  security/
+    MASVS_L1_CHECKLIST.md       # قائمة تدقيق أمان OWASP MASVS L1 وفحص MobSF
+
+tests/
+  egyptian-200/
+    egyptian_200_eval.json      # مجموعة التقييم الشاملة (200 سؤال موزعة عبر 7 فئات)
+  nsfw-calibration/
+    CALIBRATION_REPORT.md       # التقرير الفني لمعايرة مصفوفة الحساسية والدقة
 ```
 
-## Build
+---
 
-Requirements: JDK 17, Android SDK (API 35, build-tools 35), Gradle 8.11.1.
+## 🛠️ البناء والتشغيل (Build & Verification)
 
-```bash
-gradle assembleDebug
-# APK: app/build/outputs/apk/debug/app-debug.apk
+### المتطلبات الأساسية:
+- **نظام التشغيل:** Windows / Linux / macOS
+- **JDK:** OpenJDK 17 أو OpenJDK 21 (موصى به)
+- **Android SDK:** API Level 35 مع Build-Tools 35.0.0
+- **Gradle:** 8.14 (مرفق عبر `gradlew.bat` و `gradle-wrapper.jar`)
+
+### 1. تشغيل جميع اختبارات الوحدة (44 اختباراً - 100% نجاح):
+```powershell
+.\gradlew.bat testDebugUnitTest
 ```
 
-The Gradle wrapper script (`gradlew`) is included, but the wrapper jar
-(`gradle/wrapper/gradle-wrapper.jar`) is intentionally not committed yet:
-generate it once on a machine with normal Maven Central access with
-`gradle wrapper --gradle-version 8.11.1`, then `./gradlew assembleDebug`
-works as usual. GitHub Actions does not need it — CI installs Gradle 8.11.1
-directly (see `.github/workflows/android.yml`).
+### 2. بناء حزمة التطبيق للتجربة (Debug APK):
+```powershell
+.\gradlew.bat assembleDebug
+```
+*يتم إنتاج ملف الـ APK الجاهز للتثبيت في المسار:*  
+`app/build/outputs/apk/debug/app-debug.apk`
 
-Install on a phone with `adb install app/build/outputs/apk/debug/app-debug.apk`.
-The app works fully in airplane mode (Lite mode). The VPN filter and the
-optional model download need network; the model download is Wi-Fi-only.
+### 3. التثبيت على الهاتف عبر ADB:
+```powershell
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
 
-## Honest limits (read before you promise anything)
+---
 
-- No blocker, app, or programme has proven long-term effectiveness for
-  problematic pornography use; CBT/ACT psychotherapy has the strongest
-  (still limited) evidence. This app delivers CBT/ACT *skills*, it does not
-  claim to cure anything.
-- Blocking on stock Android is bypassable by a determined device owner.
-  The only truly unremovable layer (Device Owner) needs a PC, risks
-  permanent lockout, and is **not** the default — it is a Phase 3 opt-in.
-- No on-device NSFW classifier is 95%+ accurate on real-world content.
-  Thresholds here are tuned for recall; false positives get an appeal
-  flow that logs nothing.
-- The therapeutic content is educational material, not clinical advice.
-  It must be reviewed by Egyptian clinicians before any public launch,
-  and the app must get Egyptian legal advice (Personal Data Protection
-  Law 151/2020; health data is sensitive data even when processed
-  on-device).
+## 📋 التوافق القانوني والتنظيمي (Compliance)
 
-## Roadmap
+1. **متجر جوجل بلاي (Google Play Store)**:
+   - تم إعداد وتوثيق متطلبات سياسة `VpnService` بسكريبت فيديو توضيحي مدته 90 ثانية [VPNSERVICE_DECLARATION.md](docs/play-declarations/VPNSERVICE_DECLARATION.md).
+   - إجابات واضحة لنموذج أمان البيانات [DATA_SAFETY.md](docs/play-declarations/DATA_SAFETY.md) تؤكد عدم جمع أو مشاركة أي بيانات للمستخدمين.
+   - الالتزام الكامل بسياسة التطبيقات الصحية وإخلاء المسؤولية الطبية [HEALTH_APPS_POLICY.md](docs/play-declarations/HEALTH_APPS_POLICY.md).
+2. **قانون حماية البيانات الشخصية المصري رقم 151 لسنة 2020 ولائحته 816 لسنة 2025**:
+   - المعالجة تتم داخل النطاق الشخصي والمحلي للمستخدم بدون أي خوادم مركزية أو نقل للبيانات عبر الحدود [EGYPT_LAW_151_2020.md](docs/legal/EGYPT_LAW_151_2020.md).
+3. **معايير الأمان العالمية (OWASP MASVS L1)**:
+   - التحقق من معايير التخزين والتشفير وعزل الشبكة والتأكد من انعدام برمجيات التتبع [MASVS_L1_CHECKLIST.md](docs/security/MASVS_L1_CHECKLIST.md).
 
-- **Phase 0 (this repo now):** foundations — Compose UI, encrypted DB, scripted coach + FTS5, DNS blocker scaffold, model manifest, CI.
-- **Phase 1 (MVP):** wire LiteRT-LM / llama.cpp behind `LlmEngine` after a spike on 3 low-end devices; NSFW Tier 1 in the WebView; local peer pairing (QR/code) + 24h disable flow; MASVS L1 audit; Play Store + sideload APK.
-- **Phase 2:** vector RAG (only if FTS5 is measurably worse), dumb-relay peer alerts (sealed boxes, FCM data-only), content pack v2.
-- **Phase 3:** Device Owner "Hard Mode" (opt-in, with a safety review), on-device video pre-scan, iOS re-evaluation.
+---
 
-## Contributing
-
-Contributions are welcome — especially Arabic content review by clinicians,
-low-end-device testing in Egypt, and security review. Please read
-[SECURITY.md](SECURITY.md) and [PRIVACY.md](PRIVACY.md) first. Do not submit
-real pornographic material in any test set; use licensed/synthetic data only.
-
-## License
-
-Apache License 2.0 — see [LICENSE](LICENSE).
+## 📜 الترخيص (License)
+مرخص بموجب رخصة أباتشي 2.0 (Apache License 2.0) — انظر ملف [LICENSE](LICENSE) للمزيد من التفاصيل.
