@@ -46,8 +46,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.recovery.companion.data.PeerLink
+import com.recovery.companion.peer.WeeklyMetrics
+import com.recovery.companion.peer.WeeklySummaryGenerator
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
@@ -118,6 +122,7 @@ fun AppNav(app: RecoveryApp) {
             composable("programme") { ProgrammeScreen(app) }
             composable("coach") { CoachScreen(app) }
             composable("protection") { ProtectionScreen(app) }
+            composable("peer") { PeerScreen(app) }
             composable("browser") { SafeWebView() }
             composable("settings") { SettingsScreen(app) }
         }
@@ -195,6 +200,9 @@ fun HomeScreen(app: RecoveryApp, nav: androidx.navigation.NavController) {
             OutlinedButton(onClick = { nav.navigate("browser") }, modifier = Modifier.weight(1f)) {
                 Text("متصفح آمن")
             }
+        }
+        OutlinedButton(onClick = { nav.navigate("peer") }, modifier = Modifier.fillMaxWidth()) {
+            Text("المسؤولية المشتركة (المتابعة مع صديق)")
         }
         Text(
             "التطبيق ده دعم وتعليم، مش بديل عن طبيب أو معالج نفسي. لو حاسس إنك في خطر على نفسك، اطلب مساعدة إنسان فورًا.",
@@ -695,6 +703,134 @@ fun OnboardingScreen(app: RecoveryApp, onDone: () -> Unit) {
                     modifier = Modifier.fillMaxWidth()
                 ) { Text("ابدأ — الوضع ${if (ram < 4) "الخفيف" else "الكامل"}") }
             }
+        }
+    }
+}
+
+@Composable
+fun PeerScreen(app: RecoveryApp) {
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var peers by remember { mutableStateOf<List<PeerLink>>(emptyList()) }
+    var myPayload by remember { mutableStateOf("") }
+    var importPayload by remember { mutableStateOf("") }
+    var weeklySummary by remember { mutableStateOf<WeeklyMetrics?>(null) }
+    var message by remember { mutableStateOf("") }
+
+    LaunchedEffect(Unit) {
+        scope.launch(Dispatchers.IO) {
+            peers = app.db.peerDao().activePeers()
+            weeklySummary = WeeklySummaryGenerator.generate(app.db, app.settings, app.peer.getSigner())
+        }
+    }
+
+    Screen {
+        Text("المسؤولية المشتركة (بدون خوادم)", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "المتابعة مع شخص موثوق بتضاعف فرص النجاح. التقرير بيشارك أرقام بس (أيام الالتزام والتمارين)، " +
+            "مفيش أي نصوص أو محادثات أو مواقع بتتشاف. كل حاجة مشفرة رقمياً بتوقيع Ed25519."
+        )
+
+        weeklySummary?.let { summary ->
+            Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CARD)) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("تقرير التعافي الأسبوعي", fontWeight = FontWeight.Bold)
+                    Text("• أيام الممارسة والوعي: ${summary.practiceDays} / 7")
+                    Text("• أيام المتابعة: ${summary.checkInDays} / 7")
+                    Text("• تمارين ركوب الموجة المكتملة: ${summary.completedExercises}")
+                    Text("• مراجعات واعية مسجلة: ${summary.lapseCount}")
+                    Text("• درع الحماية: " + if (summary.protectionActive) "شغّال ومفعّل 🛡️" else "متوقف ⚠️")
+                    Button(
+                        onClick = {
+                            val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                            cm.setPrimaryClip(ClipData.newPlainText("weekly_summary", summary.toSharableArabicText()))
+                            message = "تم نسخ التقرير المشفر! تقدر تبعته لشخصك الموثوق."
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) { Text("نسخ التقرير لمشاركته") }
+                }
+            }
+        }
+
+        Text("الأشخاص الموثوقين (${peers.size}):", fontWeight = FontWeight.Bold)
+        if (peers.isEmpty()) {
+            Text("مفيش أصدقاء مربوطين حالياً. شارك رمزك عشان تبدأ.")
+        } else {
+            peers.forEach { peer ->
+                Card(Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = CARD)) {
+                    Row(
+                        Modifier.padding(12.dp).fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column {
+                            Text(peer.peerName, fontWeight = FontWeight.Bold)
+                            Text("تاريخ الربط: يوم ${peer.pairedDayEpoch}", fontSize = 12.sp, color = Color.Gray)
+                        }
+                        TextButton(
+                            onClick = {
+                                scope.launch(Dispatchers.IO) {
+                                    app.peer.createSignedUnpairMessage(peer.id, app.db)
+                                    val updated = app.db.peerDao().activePeers()
+                                    withContext(Dispatchers.Main) {
+                                        peers = updated
+                                        message = "تم إلغاء الربط وإصدار رسالة موقعة."
+                                    }
+                                }
+                            }
+                        ) { Text("إلغاء الربط", color = Color.Red) }
+                    }
+                }
+            }
+        }
+
+        Button(
+            onClick = {
+                val payload = app.peer.createPairingPayload("صديق تعافي")
+                val cm = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+                cm.setPrimaryClip(ClipData.newPlainText("pairing_code", payload))
+                myPayload = payload
+                message = "تم إنشاء ونسخ رمز الربط الرقمي."
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("إنشاء ونسخ رمز الربط الخاص بي") }
+
+        if (myPayload.isNotEmpty()) {
+            Text("رمزك الرقمي المشفر (تم نسخه):", fontSize = 12.sp)
+            Text(myPayload, fontSize = 10.sp, color = Color.Gray)
+        }
+
+        Spacer(Modifier.height(8.dp))
+        Text("ربط مع شخص موثوق (لصق رمزه):", fontWeight = FontWeight.Bold)
+        OutlinedTextField(
+            value = importPayload,
+            onValueChange = { importPayload = it },
+            label = { Text("الصق رمز الصديق هنا") },
+            modifier = Modifier.fillMaxWidth()
+        )
+        Button(
+            onClick = {
+                scope.launch(Dispatchers.IO) {
+                    try {
+                        app.peer.importPairingPayload(importPayload.trim(), app.db)
+                        val updated = app.db.peerDao().activePeers()
+                        withContext(Dispatchers.Main) {
+                            peers = updated
+                            importPayload = ""
+                            message = "تم الربط بنجاح مع الصديق الموثوق!"
+                        }
+                    } catch (e: Exception) {
+                        withContext(Dispatchers.Main) {
+                            message = "خطأ في قراءة الرمز: ${e.message}"
+                        }
+                    }
+                }
+            },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("تأكيد الربط") }
+
+        if (message.isNotEmpty()) {
+            Text(message, fontWeight = FontWeight.Bold, color = Color(0xFF2E7D32))
         }
     }
 }

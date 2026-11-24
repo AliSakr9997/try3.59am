@@ -40,6 +40,8 @@ class RecoveryApp : Application() {
         private set
     lateinit var nsfw: NsfwScanner
         private set
+    lateinit var peer: com.recovery.companion.peer.PeerManager
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -51,6 +53,7 @@ class RecoveryApp : Application() {
         protection = ProtectionManager(this)
         llm = StubLlmEngine(this)
         nsfw = NsfwScanner(this)
+        peer = com.recovery.companion.peer.PeerManager(this)
         Blocklist.load(this)
         scope.launch {
             runCatching { content.ensureSeeded() }
