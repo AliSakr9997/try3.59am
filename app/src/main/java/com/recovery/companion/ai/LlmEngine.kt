@@ -2,25 +2,19 @@ package com.recovery.companion.ai
 
 import android.content.Context
 import com.recovery.companion.data.SettingsStore
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
+import org.json.JSONObject
 
 /**
- * On-device SLM, Phase 0 scaffold.
+ * On-device SLM Engine & Guardrails (PR7).
  *
- * HARD RULES (plan §1.6):
- * - The SLM NEVER answers from its own weights on therapeutic questions.
- * - It may only paraphrase a retrieved, approved chunk.
- * - temperature <= 0.3, max 150 tokens, output must cite the chunk id.
- * - If the model is not downloaded, RAM < 4 GB, or Lite mode is on, the
- *   caller gets [LlmStatus.NOT_AVAILABLE] and shows the verbatim chunk.
- * - The model file is downloaded on-demand over Wi-Fi only, from the signed
- *   manifest (see ModelManifest.kt). It is NEVER bundled in the APK.
- *
- * The real runtime (LiteRT-LM for Gemma, llama.cpp JNI for Qwen) is wired
- * in Phase 1 behind this interface, after a 2-week spike on 3 test devices
- * (plan §7.2). Until then this interface is the contract — and the app is
- * fully usable without any LLM at all.
+ * THE 7 STRICT GUARDRAIL RULES (plan §14):
+ * 1. Closed Corpus Only — Prompt provides ONLY the retrieved approved chunk.
+ * 2. Strict System Prompt — Egyptian Arabic, empathetic recovery framing, no external clinical advice.
+ * 3. Sampling Constraints — Temperature <= 0.3, Top-P <= 0.9, Max tokens <= 150.
+ * 4. Structured Schema Output — JSON output {"exercise_id": "...", "paraphrase": "...", "source_ids": ["..."]}.
+ * 5. Citation Requirement — source_ids must match the retrieved chunk id.
+ * 6. Verbatim Fallback — If schema, citation, length, or model fails, discard output and show verbatim chunk.
+ * 7. Crisis Refusal Intercept — Medical, self-harm, diagnostic, and sexual queries are intercepted before the LLM.
  */
 sealed interface LlmStatus {
     data object NotDownloaded : LlmStatus
@@ -31,13 +25,20 @@ sealed interface LlmStatus {
 
 data class ParaphraseRequest(
     val chunkId: String,
+    val chunkTitle: String = "",
     val chunkText: String,
+    val source: String = "",
     val userQuestion: String
+)
+
+data class ParaphraseResponse(
+    val exerciseId: String,
+    val paraphrase: String,
+    val sourceIds: List<String>
 )
 
 interface LlmEngine {
     suspend fun status(): LlmStatus
-    /** Returns the paraphrase, or null if validation fails (caller shows verbatim). */
     suspend fun paraphrase(request: ParaphraseRequest): String?
 }
 
@@ -54,22 +55,83 @@ class StubLlmEngine(private val context: Context) : LlmEngine {
     }
 
     override suspend fun paraphrase(request: ParaphraseRequest): String? {
-        // Phase 0: no runtime wired yet. Returning null is the safe behaviour:
-        // the UI falls back to the verbatim approved chunk. Never invent text.
+        // Fallback to verbatim: returning null signals the caller to show the verbatim approved chunk.
         return null
     }
 }
 
-/** Guardrails shared by any future runtime implementation. */
+/**
+ * Encapsulates the 7 Guardrail Rules for SLM Paraphrasing.
+ */
 object LlmGuardrails {
     const val MAX_TOKENS = 150
     const val TEMPERATURE = 0.3f
     const val TOP_P = 0.9f
+    const val MAX_OUTPUT_CHARS = 1200
 
-    /** A paraphrase is only shown if it cites the chunk it came from. */
-    fun isValidParaphrase(text: String?, chunkId: String): Boolean {
-        if (text.isNullOrBlank()) return false
-        if (text.length > 1200) return false
-        return text.contains(chunkId) || text.contains("المصدر")
+    /**
+     * Rule 1 & Rule 2: Builds a closed-corpus prompt in Egyptian Arabic.
+     */
+    fun buildClosedCorpusPrompt(request: ParaphraseRequest): String {
+        return """
+            أنت مساعد تعافي متخصص بالعامية المصرية. مهمتك الوحيدة هي صياغة وتلخيص المحتوى المعتمد التالي لدعم المستخدم في لحظة الرغبة أو التوتر.
+            
+            القواعد الصارمة:
+            1. لا تضف أي نصائح طبية أو تشخيصات أو أدوية من خارج هذا النص.
+            2. حافظ على لهجة دافئة ومشجعة بالعامية المصرية بدون خزي أو لوم.
+            3. أجب بصيغة JSON فقط بهذا الشكل تماماً ولا تضف أي نص قبله أو بعده:
+            {"exercise_id": "${request.chunkId}", "paraphrase": "صياغة المقتطف...", "source_ids": ["${request.chunkId}"]}
+            
+            المحتوى المعتمد سريرياً:
+            المعرف: ${request.chunkId}
+            العنوان: ${request.chunkTitle}
+            المحتوى: ${request.chunkText}
+            المصدر: ${request.source}
+            
+            سؤال المستخدم: ${request.userQuestion}
+        """.trimIndent()
+    }
+
+    /**
+     * Rule 4 & Rule 5: Validates structured JSON schema and citation matching.
+     * Rule 6: Returns null if validation fails, instructing the caller to fallback to verbatim.
+     */
+    fun validateOutput(rawLlmOutput: String?, expectedChunkId: String): ParaphraseResponse? {
+        if (rawLlmOutput.isNullOrBlank()) return null
+        if (rawLlmOutput.length > MAX_OUTPUT_CHARS) return null
+
+        return runCatching {
+            // Find JSON block if model produced markdown code fences
+            val jsonStr = if (rawLlmOutput.contains("{") && rawLlmOutput.contains("}")) {
+                val start = rawLlmOutput.indexOf('{')
+                val end = rawLlmOutput.lastIndexOf('}')
+                rawLlmOutput.substring(start, end + 1)
+            } else {
+                rawLlmOutput
+            }
+
+            val obj = JSONObject(jsonStr)
+            val exerciseId = obj.optString("exercise_id", "")
+            val paraphrase = obj.optString("paraphrase", "").trim()
+
+            if (paraphrase.isBlank()) return null
+
+            val sourceArray = obj.optJSONArray("source_ids") ?: return null
+            val sourceIds = mutableListOf<String>()
+            for (i in 0 until sourceArray.length()) {
+                sourceIds.add(sourceArray.getString(i))
+            }
+
+            // Rule 5: Citation Requirement — Must cite the expected chunk id
+            if (!sourceIds.contains(expectedChunkId)) {
+                return null
+            }
+
+            ParaphraseResponse(
+                exerciseId = exerciseId,
+                paraphrase = paraphrase,
+                sourceIds = sourceIds
+            )
+        }.getOrNull()
     }
 }
