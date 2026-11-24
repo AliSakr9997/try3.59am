@@ -81,7 +81,7 @@
 ---
 
 #### Method 1: Direct APK Sideload (Recommended for Users)
-1. Download the latest `app-debug.apk` (or release APK) from the [Releases](https://github.com/AliSakr9997/try3.59am/releases) page or build it locally.
+1. Download the latest `recovery-companion-v1.0.0.apk` (or `app-debug.apk`) from the [Releases](https://github.com/AliSakr9997/try3.59am/releases) page or build it locally.
 2. Transfer the APK to your Android device via USB, messaging app, or browser download.
 3. Open the downloaded file using your phone's File Manager.
 4. When prompted by Android:
@@ -205,7 +205,7 @@ cd try3.59am
 ---
 
 #### الطريقة الأولى: التثبيت المباشر عبر ملف APK (موصى بها للمستخدمين)
-1. حمّل أحدث إصدار من ملف `app-debug.apk` من صفحة [الإصدارات (Releases)](https://github.com/AliSakr9997/try3.59am/releases).
+1. حمّل أحدث إصدار من ملف `recovery-companion-v1.0.0.apk` (أو `app-debug.apk`) من صفحة [الإصدارات (Releases)](https://github.com/AliSakr9997/try3.59am/releases).
 2. افتح الملف المحمّل من خلال مدير الملفات على هاتفك.
 3. إذا ظهرت لك رسالة أمان أندرويد:
    - اضغط على **الإعدادات (Settings)** ثم فعّل خيار **السماح بتثبيت التطبيقات من هذا المصدر (Allow from this source)**.
