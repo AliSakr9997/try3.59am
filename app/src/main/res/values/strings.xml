@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">رفيق التعافي</string>
+    <string name="app_tagline">تعافٍ بخصوصية، على جهازك أنت</string>
+    <string name="home_title">النهاردة</string>
+    <string name="urge_button">عندي رغبة دلوقتي — ساعدني</string>
+    <string name="programme_title">برنامج الست أسابيع</string>
+    <string name="coach_title">المدرب</string>
+    <string name="protection_title">الحماية</string>
+    <string name="settings_title">الإعدادات</string>
+    <string name="privacy_note">مفيش أي بيانات بتطلع من موبايلك. مفيش سيرفر، مفيش حساب، مفيش تتبّع.</string>
+    <string name="not_a_substitute">التطبيق ده دعم وتعليم، مش بديل عن طبيب أو معالج نفسي. لو حاسس إنك في خطر على نفسك، اطلب مساعدة إنسان فورًا.</string>
+    <string name="blocking_honest">الحجب هنا احتكاك مش قفل حديد: بيبطّأ الوصول وبيخليه واضح، لكن مفيش حجب على موبايل بتملكه ميتفكّش. القوة الحقيقية في المهارات والدعم.</string>
+</resources>
