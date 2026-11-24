@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Default: no cleartext anywhere. The only network the app ever makes
+     is an optional, Wi-Fi-only, signed model/content download over HTTPS
+     from a pinned host (see ai/ModelManifest.kt). -->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="false" />
+</network-security-config>
