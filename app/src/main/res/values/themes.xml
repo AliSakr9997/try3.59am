@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.RecoveryCompanion" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:statusBarColor">#F7F3EC</item>
+        <item name="android:navigationBarColor">#F7F3EC</item>
+        <item name="android:windowBackground">#F7F3EC</item>
+    </style>
+</resources>
