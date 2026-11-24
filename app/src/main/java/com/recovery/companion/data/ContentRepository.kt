@@ -25,11 +25,8 @@ open class ContentRepository(private val context: Context? = null, private val d
         if (existing > 0) return@withContext existing
         val jsonBytes = ctx.assets.open("content_pack_v1.json").readBytes()
         val manifest = ctx.assets.open("content_pack_manifest.json").readBytes().decodeToString()
-        val expectedSha = Regex("\"sha256\"\\s*:\\s*\"([0-9a-f]{64})\"").find(manifest)?.groupValues?.get(1)
-        val actualSha = MessageDigest.getInstance("SHA-256").digest(jsonBytes)
-            .joinToString("") { "%02x".format(it) }
-        if (expectedSha != null && expectedSha != actualSha) {
-            throw IllegalStateException("Content pack failed signature check — refusing to load.")
+        if (!ContentPackVerifier.verifyPack(jsonBytes, manifest)) {
+            throw IllegalStateException("Content pack failed cryptographic signature check — refusing to load.")
         }
         val chunks = parse(jsonBytes.decodeToString())
         dao.insertAll(chunks)
