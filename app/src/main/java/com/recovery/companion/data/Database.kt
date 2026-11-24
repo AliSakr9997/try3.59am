@@ -225,6 +225,7 @@ abstract class AppDatabase : RoomDatabase() {
 
         fun get(context: Context, passphrase: ByteArray): AppDatabase =
             instance ?: synchronized(this) {
+                runCatching { System.loadLibrary("sqlcipher") }
                 instance ?: Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,

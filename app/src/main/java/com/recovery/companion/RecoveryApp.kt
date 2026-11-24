@@ -45,6 +45,7 @@ class RecoveryApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        runCatching { System.loadLibrary("sqlcipher") }
         keyManager = KeyManager(this)
         db = AppDatabase.get(this, keyManager.databasePassphrase())
         settings = SettingsStore(this)
