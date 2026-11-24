@@ -1,0 +1,44 @@
+# Recovery Companion - DNS blocklist v1 (starter set, versioned).
+# One domain per line. Suffix-matched, so subdomains are covered.
+# This list is intentionally small; the Cloudflare Family upstream
+# resolver (1.1.1.3) enforces its own larger list as a second layer.
+pornhub.com
+xvideos.com
+xnxx.com
+xhamster.com
+redtube.com
+youporn.com
+tube8.com
+porn.com
+brazzers.com
+onlyfans.com
+chaturbate.com
+livejasmin.com
+stripchat.com
+bongacams.com
+cam4.com
+camsoda.com
+myfreecams.com
+spankbang.com
+eporner.com
+tnaflix.com
+beeg.com
+hclips.com
+sex.com
+adultfriendfinder.com
+ashley-madison.com
+fling.com
+fetlife.com
+porntrex.com
+nudevista.com
+sunporno.com
+xvideos2.com
+pornhubpremium.com
+youporngay.com
+gayporn.com
+pornmd.com
+tubev.com
+fapdu.com
+pervclips.com
+xxx.com
+sexvideos.com
