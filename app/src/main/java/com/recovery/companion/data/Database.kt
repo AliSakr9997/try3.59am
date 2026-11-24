@@ -13,7 +13,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteQuery
-import net.sqlcipher.database.SupportFactory
+import net.zetetic.database.sqlcipher.SupportOpenHelperFactory
 
 // ---------------------------------------------------------------------------
 // Coded events only. There is deliberately NO free-text field anywhere in
@@ -48,6 +48,53 @@ data class DisableRequest(
     val approved: Boolean,
     val executed: Boolean
 )
+
+@Entity(tableName = "lapse_events")
+data class LapseEvent(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val dayEpoch: Long,
+    val triggerId: String?,
+    val noteCode: String,          // fixed codes only, never user free text
+    val createdAt: Long
+)
+
+@Entity(tableName = "streak_state")
+data class StreakState(
+    @PrimaryKey val id: Int = 1,
+    val startDayEpoch: Long,
+    val currentCount: Int,
+    val bestCount: Int
+)
+
+@Entity(tableName = "peer_links")
+data class PeerLink(
+    @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    val peerPubKey: ByteArray,     // X25519 public key from QR pairing
+    val peerName: String,
+    val pairedDayEpoch: Long,
+    val revoked: Boolean = false
+) {
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (javaClass != other?.javaClass) return false
+        other as PeerLink
+        if (id != other.id) return false
+        if (!peerPubKey.contentEquals(other.peerPubKey)) return false
+        if (peerName != other.peerName) return false
+        if (pairedDayEpoch != other.pairedDayEpoch) return false
+        if (revoked != other.revoked) return false
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = id.hashCode()
+        result = 31 * result + peerPubKey.contentHashCode()
+        result = 31 * result + peerName.hashCode()
+        result = 31 * result + pairedDayEpoch.hashCode()
+        result = 31 * result + revoked.hashCode()
+        return result
+    }
+}
 
 /** One clinician-approved content chunk (Arabic, MSA + Egyptian phrasing). */
 @Entity(tableName = "content_chunks")
@@ -123,8 +170,44 @@ interface ContentDao {
     fun searchLike(term: String): List<ContentChunk>
 }
 
+@Dao
+interface LapseDao {
+    @Insert fun insert(event: LapseEvent): Long
+    @Query("SELECT * FROM lapse_events ORDER BY createdAt DESC LIMIT 50")
+    fun recent(): List<LapseEvent>
+    @Query("SELECT COUNT(*) FROM lapse_events")
+    fun count(): Int
+}
+
+@Dao
+interface StreakDao {
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    fun upsert(state: StreakState)
+    @Query("SELECT * FROM streak_state WHERE id = 1 LIMIT 1")
+    fun get(): StreakState?
+}
+
+@Dao
+interface PeerDao {
+    @Insert fun insert(peer: PeerLink): Long
+    @Query("SELECT * FROM peer_links WHERE revoked = 0 ORDER BY pairedDayEpoch DESC")
+    fun activePeers(): List<PeerLink>
+    @Query("UPDATE peer_links SET revoked = 1 WHERE id = :id")
+    fun revoke(id: Long)
+    @Query("SELECT COUNT(*) FROM peer_links WHERE revoked = 0")
+    fun activePeerCount(): Int
+}
+
 @Database(
-    entities = [UrgeEvent::class, DayLog::class, DisableRequest::class, ContentChunk::class],
+    entities = [
+        UrgeEvent::class,
+        DayLog::class,
+        DisableRequest::class,
+        ContentChunk::class,
+        LapseEvent::class,
+        StreakState::class,
+        PeerLink::class
+    ],
     version = 1,
     exportSchema = false
 )
@@ -133,6 +216,9 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun dayDao(): DayDao
     abstract fun disableDao(): DisableDao
     abstract fun contentDao(): ContentDao
+    abstract fun lapseDao(): LapseDao
+    abstract fun streakDao(): StreakDao
+    abstract fun peerDao(): PeerDao
 
     companion object {
         @Volatile private var instance: AppDatabase? = null
@@ -144,7 +230,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "recovery.db"
                 )
-                    .openHelperFactory(SupportFactory(passphrase))
+                    .openHelperFactory(SupportOpenHelperFactory(passphrase))
                     .addCallback(FtsCallback)
                     .build()
                     .also { instance = it }

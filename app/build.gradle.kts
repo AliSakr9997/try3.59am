@@ -1,12 +1,14 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("org.jetbrains.kotlin.plugin.compose")
     id("com.google.devtools.ksp")
 }
 
 android {
     namespace = "com.recovery.companion"
     compileSdk = 35
+    buildToolsVersion = "35.0.0"
 
     defaultConfig {
         applicationId = "com.recovery.companion"
@@ -35,9 +37,6 @@ android {
         compose = true
     }
 
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.7.1"
-    }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -77,20 +76,17 @@ dependencies {
     implementation("androidx.room:room-ktx:2.8.1")
     ksp("androidx.room:room-compiler:2.8.1")
     implementation("androidx.sqlite:sqlite-ktx:2.4.0")
-    implementation("net.zetetic:android-database-sqlcipher:4.6.1")
+    implementation("net.zetetic:sqlcipher-android:4.6.1")
 
-    // Key handling: Android Keystore + EncryptedSharedPreferences.
-    // Tink (com.google.crypto.tink:tink-android:1.15.0), LiteRT
-    // (com.google.ai.edge.litert:litert:2.4.0) and ONNX Runtime Mobile
-    // (com.microsoft.onnxruntime:onnxruntime-android:1.20.0) are Phase 1
-    // dependencies, wired behind LlmEngine / NsfwScanner once their
-    // runtimes are spiked on low-end devices. They are deliberately NOT
-    // on the classpath yet — no code imports them, so adding them now
-    // would only add resolution risk to the Phase 0 build.
+    // Key handling: Android Keystore + EncryptedSharedPreferences + Tink.
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    implementation("com.google.crypto.tink:tink-android:1.15.0")
 
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")
     implementation("androidx.webkit:webkit:1.12.1")
 
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.8.1")
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")

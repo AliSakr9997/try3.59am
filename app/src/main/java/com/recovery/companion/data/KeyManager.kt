@@ -2,6 +2,7 @@ package com.recovery.companion.data
 
 import android.content.Context
 import android.util.Base64
+import androidx.core.content.edit
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 import java.security.SecureRandom
@@ -34,16 +35,17 @@ class KeyManager(context: Context) {
 
     /** Returns the existing passphrase, or generates and stores one. */
     fun databasePassphrase(): ByteArray {
-        val stored = prefs.getString(KEY_DB_PASSPHRASE, null)
+        val stored: String? = prefs.getString(KEY_DB_PASSPHRASE, null)
         if (stored != null) return Base64.decode(stored, Base64.NO_WRAP)
         val bytes = ByteArray(32).also { SecureRandom().nextBytes(it) }
-        prefs.edit().putString(KEY_DB_PASSPHRASE, Base64.encodeToString(bytes, Base64.NO_WRAP)).apply()
+        val b64 = Base64.encodeToString(bytes, Base64.NO_WRAP)
+        prefs.edit { putString(KEY_DB_PASSPHRASE, b64) }
         return bytes
     }
 
     /** Irreversible: wipes the passphrase, which makes the encrypted DB unreadable. */
     fun wipeAll() {
-        prefs.edit().clear().apply()
+        prefs.edit { clear() }
     }
 
     companion object {

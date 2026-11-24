@@ -301,9 +301,9 @@ fun ProgrammeScreen(app: RecoveryApp) {
         }
         chunks.forEach { c ->
             Card(
-                Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = CARD),
-                onClick = { selected = c }
+                onClick = { selected = c },
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CARD)
             ) {
                 Column(Modifier.padding(12.dp)) {
                     Text(c.title, fontWeight = FontWeight.Bold)

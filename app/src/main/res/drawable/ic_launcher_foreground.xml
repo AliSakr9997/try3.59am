@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Calm leaf/shield symbol representing recovery -->
+    <path
+        android:fillColor="#81C784"
+        android:pathData="M54,28 C42,40 38,54 44,68 C48,76 54,80 54,80 C54,80 60,76 64,68 C70,54 66,40 54,28 Z" />
+    <path
+        android:fillColor="#E8F5E9"
+        android:pathData="M54,34 L54,74 C54,74 58,70 61,65 C65,54 62,43 54,34 Z" />
+</vector>
