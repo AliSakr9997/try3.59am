@@ -114,6 +114,7 @@ fun AppNav(app: RecoveryApp) {
             composable("onboarding") { OnboardingScreen(app) { nav.navigate("home") } }
             composable("home") { HomeScreen(app, nav) }
             composable("urge") { UrgeScreen(app) { nav.popBackStack() } }
+            composable("lapse") { LapseDebriefScreen(app) { nav.popBackStack() } }
             composable("programme") { ProgrammeScreen(app) }
             composable("coach") { CoachScreen(app) }
             composable("protection") { ProtectionScreen(app) }
@@ -153,7 +154,7 @@ fun HomeScreen(app: RecoveryApp, nav: androidx.navigation.NavController) {
         scope.launch(Dispatchers.IO) {
             practiceDays = app.db.urgeDao().practiceDays()
             checkIns = app.db.dayDao().checkInDays()
-            lapses = app.db.urgeDao().lapseCount()
+            lapses = app.db.lapseDao().count() + app.db.urgeDao().lapseCount()
             protectionOn = app.settings.isProtectionEnabled()
         }
     }
@@ -167,6 +168,10 @@ fun HomeScreen(app: RecoveryApp, nav: androidx.navigation.NavController) {
             onClick = { nav.navigate("urge") },
             modifier = Modifier.fillMaxWidth().height(56.dp)
         ) { Text("عندي رغبة دلوقتي — ساعدني", fontSize = 17.sp) }
+        OutlinedButton(
+            onClick = { nav.navigate("lapse") },
+            modifier = Modifier.fillMaxWidth()
+        ) { Text("تسجيل انتكاسة — مراجعة واعية بدون خزي") }
         StatCard(
             "أيام الممارسة",
             "$practiceDays",
@@ -277,6 +282,103 @@ fun UrgeScreen(app: RecoveryApp, onDone: () -> Unit) {
                 OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
                     Text("رجوع للرئيسية")
                 }
+            }
+        }
+    }
+}
+
+@Composable
+fun LapseDebriefScreen(app: RecoveryApp, onDone: () -> Unit) {
+    val scope = rememberCoroutineScope()
+    var trigger by remember { mutableStateOf("night") }
+    var codedNote by remember { mutableStateOf("alone_screen") }
+    var severity by remember { mutableFloatStateOf(1f) }
+    var saved by remember { mutableStateOf(false) }
+    var debriefChunk by remember { mutableStateOf<ContentChunk?>(null) }
+
+    val codedOptions = listOf(
+        "alone_screen" to "لوحدي مع شاشة",
+        "late_night" to "وقت متأخر بالليل",
+        "stress_relief" to "محاولة لتخفيف التوتر والضغط",
+        "autopilot" to "سلوك تلقائي بدون تفكير (Autopilot)",
+        "boredom" to "ملل وفراغ بدون هدف"
+    )
+
+    Screen {
+        Text("مراجعة واعية — بدون خزي أو لوم", fontSize = 22.sp, fontWeight = FontWeight.Bold)
+        Text(
+            "الانتكاسة مش نهاية المطاف ولا بتمسح الأيام اللي نجحت فيها. الانتكاسة معلومة بتكشف ثغرة في الخطة. " +
+            "كل ما نتعامل معاها بهدوء ووعي، كل ما بنقفل الثغرة دي أسرع."
+        )
+
+        if (!saved) {
+            Text("إيه المحفز الأساسي؟", fontWeight = FontWeight.Bold)
+            Triggers.ALL.forEach { t ->
+                OutlinedButton(
+                    onClick = { trigger = t.id },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text((if (trigger == t.id) "✓ " else "") + t.labelAr) }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text("السياق (بيانات مشفرة ومصنفة):", fontWeight = FontWeight.Bold)
+            codedOptions.forEach { (code, label) ->
+                OutlinedButton(
+                    onClick = { codedNote = code },
+                    modifier = Modifier.fillMaxWidth()
+                ) { Text((if (codedNote == code) "✓ " else "") + label) }
+            }
+
+            Spacer(Modifier.height(8.dp))
+            Text("شدة التأثير النفسي: ${severity.toInt()} / 5")
+            Slider(value = severity, onValueChange = { severity = it }, valueRange = 1f..5f, steps = 3)
+
+            Button(
+                onClick = {
+                    scope.launch(Dispatchers.IO) {
+                        val today = LocalDate.now()
+                        val dayEpoch = TimeUnit.MILLISECONDS.toDays(System.currentTimeMillis())
+                        app.db.lapseDao().insert(
+                            com.recovery.companion.data.LapseEvent(
+                                dayEpoch = dayEpoch,
+                                triggerId = trigger,
+                                noteCode = codedNote,
+                                createdAt = System.currentTimeMillis()
+                            )
+                        )
+                        app.db.dayDao().upsert(
+                            com.recovery.companion.data.DayLog(
+                                date = today.format(DateTimeFormatter.ISO_DATE),
+                                checkInDone = true,
+                                lapseFlag = true,
+                                practiceMinutes = 5
+                            )
+                        )
+                        val retrieved = app.content.retrieve("انتكاسة خزي وعي ثغرة", trigger)
+                        withContext(Dispatchers.Main) {
+                            debriefChunk = retrieved.firstOrNull()
+                            saved = true
+                        }
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) { Text("تسجيل المراجعة (محلي ومشفر)") }
+        } else {
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = CARD)
+            ) {
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("تم التسجيل بوعي. افتكر دايماً:", fontWeight = FontWeight.Bold)
+                    Text(debriefChunk?.title ?: "البداية من جديد فوراً", fontWeight = FontWeight.Bold)
+                    Text(debriefChunk?.body ?: "قوم اتوضأ أو اغسل وشك بمية باردة، اخرج من المكان المقفول فوراً، وكلم حد أو انزل اتمشى. المعركة الحقيقية هي منع الانتكاسة التانية (Chaser Effect).")
+                    debriefChunk?.source?.let {
+                        Text("المصدر: $it", fontSize = 12.sp, color = Color.Gray)
+                    }
+                }
+            }
+            Button(onClick = onDone, modifier = Modifier.fillMaxWidth()) {
+                Text("رجوع للرئيسية ومواصلة التعافي")
             }
         }
     }

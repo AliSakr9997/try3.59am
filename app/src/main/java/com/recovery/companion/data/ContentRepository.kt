@@ -15,14 +15,16 @@ import java.security.MessageDigest
  * the pack was tampered with — the app refuses to load it and keeps the
  * previous (or empty) content rather than showing unverified therapy text.
  */
-class ContentRepository(private val context: Context, private val db: AppDatabase) {
+open class ContentRepository(private val context: Context? = null, private val db: AppDatabase? = null) {
 
-    suspend fun ensureSeeded(): Int = withContext(Dispatchers.IO) {
-        val dao = db.contentDao()
+    open suspend fun ensureSeeded(): Int = withContext(Dispatchers.IO) {
+        val database = db ?: return@withContext 0
+        val ctx = context ?: return@withContext 0
+        val dao = database.contentDao()
         val existing = dao.count()
         if (existing > 0) return@withContext existing
-        val jsonBytes = context.assets.open("content_pack_v1.json").readBytes()
-        val manifest = context.assets.open("content_pack_manifest.json").readBytes().decodeToString()
+        val jsonBytes = ctx.assets.open("content_pack_v1.json").readBytes()
+        val manifest = ctx.assets.open("content_pack_manifest.json").readBytes().decodeToString()
         val expectedSha = Regex("\"sha256\"\\s*:\\s*\"([0-9a-f]{64})\"").find(manifest)?.groupValues?.get(1)
         val actualSha = MessageDigest.getInstance("SHA-256").digest(jsonBytes)
             .joinToString("") { "%02x".format(it) }
@@ -54,11 +56,12 @@ class ContentRepository(private val context: Context, private val db: AppDatabas
     }
 
     /** Offline retrieval: FTS5 first, LIKE fallback if the FTS query is empty. */
-    suspend fun retrieve(query: String, triggerId: String? = null): List<ContentChunk> =
+    open suspend fun retrieve(query: String, triggerId: String? = null): List<ContentChunk> =
         withContext(Dispatchers.IO) {
+            val database = db ?: return@withContext emptyList()
             val terms = query.split(Regex("[^\\p{L}\\p{N}]+"))
                 .filter { it.length > 1 }.distinct().take(5)
-            val dao = db.contentDao()
+            val dao = database.contentDao()
             if (terms.isNotEmpty()) {
                 val fts = terms.joinToString(" OR ") { "\"$it\"" }
                 val query = androidx.sqlite.db.SimpleSQLiteQuery(
@@ -74,7 +77,7 @@ class ContentRepository(private val context: Context, private val db: AppDatabas
             (byTrigger + byTerm).distinctBy { it.id }.take(5)
         }
 
-    suspend fun week(week: Int): List<ContentChunk> = withContext(Dispatchers.IO) {
-        db.contentDao().byWeek(week)
+    open suspend fun week(week: Int): List<ContentChunk> = withContext(Dispatchers.IO) {
+        db?.contentDao()?.byWeek(week).orEmpty()
     }
 }

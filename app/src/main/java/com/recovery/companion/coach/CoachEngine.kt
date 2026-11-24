@@ -43,14 +43,26 @@ class CoachEngine(private val content: ContentRepository) {
     }
 
     private fun detectRefusal(text: String): RefusalCategory? = when {
-        listOf("انتحر", "أنتحر", "اقتل نفسي", "أقتل نفسي", "عايز اموت", "عايز أموت", "suicide", "kill myself")
-            .any { text.contains(it) } -> RefusalCategory.SELF_HARM
-        listOf("شخّص", "شخصني", "عندي ايه", "عندي إيه", "diagnos").any { text.contains(it) } ->
-            RefusalCategory.DIAGNOSIS
-        listOf("دوا", "دواء", "حبوب", "علاج دوائي", "medication", "ssri", "naltrexone")
-            .any { text.contains(it) } -> RefusalCategory.MEDICATION
-        listOf("فيديو", "صور", "اباحي", "إباحي", "porn", "xxx").any { text.contains(it) } ->
-            RefusalCategory.SEXUAL_CONTENT
+        listOf(
+            "انتحر", "أنتحر", "انتحار", "اقتل نفسي", "أقتل نفسي", "عايز اموت", "عايز أموت",
+            "اخلص من حياتي", "أخلص من حياتي", "suicide", "kill myself", "end my life"
+        ).any { text.contains(it) } -> RefusalCategory.SELF_HARM
+        
+        listOf(
+            "شخّص", "شخصني", "تشخيص", "عندي ايه", "عندي إيه", "هل انا مريض", "هل أنا مريض",
+            "مرض نفسي", "اضطراب نفسي", "diagnos"
+        ).any { text.contains(it) } -> RefusalCategory.DIAGNOSIS
+        
+        listOf(
+            "دوا", "دواء", "أدوية", "ادوية", "حبوب", "علاج دوائي", "مضاد اكتئاب",
+            "جرعة", "منشطات", "medication", "medicine", "pill", "ssri", "naltrexone"
+        ).any { text.contains(it) } -> RefusalCategory.MEDICATION
+        
+        listOf(
+            "فيديو", "صور", "اباحي", "إباحي", "سكس", "أفلام", "افلام", "مواقع اباحية",
+            "مواقع إباحية", "موقع جنسي", "porn", "xxx", "nude", "erotic"
+        ).any { text.contains(it) } -> RefusalCategory.SEXUAL_CONTENT
+        
         else -> null
     }
 
